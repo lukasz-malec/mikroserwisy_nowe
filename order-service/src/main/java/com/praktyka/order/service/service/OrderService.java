@@ -1,6 +1,7 @@
 package com.praktyka.order.service.service;
 
 
+import com.praktyka.order.service.dto.InventoryResponse;
 import com.praktyka.order.service.dto.OrderLineItemsDto;
 import com.praktyka.order.service.dto.OrderRequest;
 import com.praktyka.order.service.model.Order;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,15 +42,16 @@ public class OrderService {
                 .toList();
 
 
-        Boolean result = webClient.get()
+        InventoryResponse[] inventoryResponsArray = webClient.get()
                 .uri("http://localhost:8083/api/inventory",
                         uriBuilder ->uriBuilder.queryParam("skuCode", skuCodes).build())
                 .retrieve()
-                .bodyToMono(Boolean.class)
+                .bodyToMono(InventoryResponse[].class)
                 .block();
 
+        boolean allProductsInStock = Arrays.stream(inventoryResponsArray).allMatch(InventoryResponse::isInStock);
 
-        if(result){
+        if(allProductsInStock){
             orderRepository.save(order);
         }else{
             throw new IllegalArgumentException("Product is not in stock, please try again later");
